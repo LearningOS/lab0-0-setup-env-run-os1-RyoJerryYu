@@ -1,9 +1,8 @@
 **/.*/*
 !.github/*
-!.cargo/*
+!**/.cargo/*
 
 **/target
-**/Cargo.lock
 /os*/src/link_app.S
 /os/last-*
 
