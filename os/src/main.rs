@@ -4,6 +4,10 @@
 mod lang_items;
 mod logging;
 mod sbi;
+mod sync;
+mod batch;
+mod trap;
+mod syscall;
 #[macro_use]
 mod console;
 
@@ -12,6 +16,7 @@ use core::arch::global_asm;
 use log::{debug, info, trace, warn, error};
 
 global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("link_app.S"));
 
 #[no_mangle]
 pub fn rust_main() -> ! {
