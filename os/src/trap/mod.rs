@@ -2,9 +2,9 @@ use core::arch::global_asm;
 use context::TrapContext;
 use riscv::register::{scause::{self, Exception, Trap}, stval, stvec, utvec::TrapMode};
 
-use crate::{println, syscall};
+use crate::{batch::run_next_app, println, syscall};
 
-mod context;
+pub mod context;
 
 
 global_asm!(include_str!("trap.S"));
@@ -31,11 +31,11 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
         Trap::Exception(Exception::StoreFault) |
         Trap::Exception(Exception::StorePageFault) => {
             println!("[kernel] PageFault in application, kernel killed it.");
-            // run_next_app(cx);
+            run_next_app();
         } 
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            // run_next_app(cx);
+            run_next_app();
         }
         _=> {
             panic!("unhandled trap: {:?}, stval = {:#x}!\n", scause.cause(), stval);
