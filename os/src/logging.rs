@@ -8,7 +8,7 @@ enum LogColor {
     Yellow = 33,
     Green = 32,
     Blue = 34,
-    White = 37,
+    BrightBlack = 90,
 }
 
 impl LogColor {
@@ -22,7 +22,7 @@ impl LogColor {
             Level::Warn => LogColor::Yellow,
             Level::Info => LogColor::Green,
             Level::Debug => LogColor::Blue,
-            Level::Trace => LogColor::White,
+            Level::Trace => LogColor::BrightBlack,
         }
     }
 }
@@ -30,8 +30,8 @@ impl LogColor {
 struct Logger;
 
 impl Log for Logger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Info
+    fn enabled(&self, _metadata: &Metadata) -> bool {
+        true
     }
 
     fn log(&self, record: &Record) {
@@ -41,7 +41,7 @@ impl Log for Logger {
 
         let color = LogColor::from_level(record.level());
         println!(
-            "\x1b[{}m{}\x1b[0m - {}",
+            "\x1b[{}m[{}] - {}\x1b[0m",
             color.val(),
             record.level(),
             record.args()
@@ -56,11 +56,11 @@ const LOGGER: Logger = Logger;
 pub fn init() {
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(match option_env!("LOG") {
-        Some("error") => LevelFilter::Error,
-        Some("warn") => LevelFilter::Warn,
-        Some("info") => LevelFilter::Info,
-        Some("debug") => LevelFilter::Debug,
-        Some("trace") => LevelFilter::Trace,
+        Some("ERROR") => LevelFilter::Error,
+        Some("WARN") => LevelFilter::Warn,
+        Some("INFO") => LevelFilter::Info,
+        Some("DEBUG") => LevelFilter::Debug,
+        Some("TRACE") => LevelFilter::Trace,
         _ => LevelFilter::Info,
     });
 }
