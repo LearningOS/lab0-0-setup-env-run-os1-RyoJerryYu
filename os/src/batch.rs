@@ -1,4 +1,4 @@
-use core::{arch::asm, borrow::Borrow};
+use core::arch::asm;
 
 use lazy_static::lazy_static;
 
