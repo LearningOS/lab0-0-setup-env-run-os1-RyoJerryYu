@@ -2,6 +2,7 @@ use core::arch::asm;
 
 use lazy_static::lazy_static;
 
+use crate::sbi::shutdown;
 use crate::trap::context::TrapContext;
 use crate::{println, sync::UPSafeCell};
 
@@ -72,7 +73,8 @@ impl AppManager {
     }
     unsafe fn load_app(&self, app_id: usize) {
         if app_id >= self.num_app {
-            panic!("app_id out of range");
+            println!("AppManager: all apps are loaded.");
+            shutdown(false);
         }
         println!("Loading app {}...", app_id);
         core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, APP_SIZE_LIMIT).fill(0);
