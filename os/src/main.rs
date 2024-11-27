@@ -8,6 +8,7 @@ mod sync;
 mod batch;
 mod trap;
 mod syscall;
+mod task;
 #[macro_use]
 mod console;
 
