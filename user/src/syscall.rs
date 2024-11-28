@@ -2,6 +2,7 @@ use core::arch::asm;
 
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
+const SYSCALL_YIELD: usize = 124;
 
 fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
@@ -22,6 +23,11 @@ pub fn sys_write(fd: usize, buf: &[u8]) -> isize {
 }
 
 pub fn sys_exit(exit_code: usize) -> ! {
+    println!("Application exited with code {}", exit_code);
     syscall(SYSCALL_EXIT, [exit_code, 0, 0]);
     panic!("Unreachable after sys_exit");
+}
+
+pub fn sys_yield() {
+    syscall(SYSCALL_YIELD, [0, 0, 0]);
 }
