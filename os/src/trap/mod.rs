@@ -3,7 +3,7 @@ use context::TrapContext;
 use log::trace;
 use riscv::register::{scause::{self, Exception, Trap}, stval, stvec, utvec::TrapMode};
 
-use crate::{loaders::run_next_app, println, syscall};
+use crate::{println, syscall};
 
 pub mod context;
 
@@ -33,11 +33,13 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
         Trap::Exception(Exception::StoreFault) |
         Trap::Exception(Exception::StorePageFault) => {
             println!("[kernel] PageFault in application, kernel killed it.");
-            run_next_app();
+            panic!("[kernel] Cannot continue!");
+            // run_next_app();
         } 
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            run_next_app();
+            panic!("[kernel] Cannot continue!");
+            //run_next_app();
         }
         _=> {
             panic!("unhandled trap: {:?}, stval = {:#x}!\n", scause.cause(), stval);

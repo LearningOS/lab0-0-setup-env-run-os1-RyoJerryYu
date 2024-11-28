@@ -58,7 +58,7 @@ pub fn rust_main() -> ! {
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     trap::init();
     loaders::init();
-    loaders::run_next_app();
+    task::run_first_task();
     // sbi::shutdown(false);
 }
 

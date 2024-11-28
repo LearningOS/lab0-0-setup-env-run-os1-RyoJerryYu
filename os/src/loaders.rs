@@ -1,12 +1,7 @@
 use core::arch::asm;
 
-use lazy_static::lazy_static;
-use log::trace;
-
 use crate::config::*;
-use crate::sbi::shutdown;
 use crate::trap::context::TrapContext;
-use crate::{println, sync::UPSafeCell};
 
 #[repr(align(4096))]
 #[derive(Clone, Copy)]
@@ -21,7 +16,7 @@ struct UserStack {
 }
 
 // allocate a space in the data segment
-static KERMEL_STACK: [KernelStack; MAX_APP_NUM] = [KernelStack {
+static KERNEL_STACK: [KernelStack; MAX_APP_NUM] = [KernelStack {
     data: [0; KERNEL_STACK_SIZE],
 }; MAX_APP_NUM];
 static USER_STACK: [UserStack; MAX_APP_NUM] = [UserStack {
@@ -102,51 +97,15 @@ pub fn load_apps() {
     }
 }
 
-#[deprecated]
-struct AppManager {
-    current_app: usize,
-}
-
-impl AppManager {
-    pub fn get_current_app(&self) -> usize {
-        self.current_app
-    }
-
-    pub fn move_to_next_app(&mut self) {
-        self.current_app += 1;
-    }
-}
-
-lazy_static! {
-    static ref APP_MANAGER: UPSafeCell<AppManager> =
-        unsafe { UPSafeCell::new({ AppManager { current_app: 0 } }) };
+// init the KERNEL_STACK for the app
+pub fn init_app_cx(app_id: usize) -> usize {
+    KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
+        get_base_i(app_id),
+        USER_STACK[app_id].get_sp(),
+    )) as *const _ as usize
 }
 
 /// init batch subsystem
 pub fn init() {
     load_apps();
-}
-
-pub fn run_next_app() -> ! {
-    let mut app_manager = APP_MANAGER.exclusive_access();
-    let current_app = app_manager.get_current_app();
-    if current_app >= get_num_app() {
-        drop(app_manager);
-        println!("All applications have been executed");
-        shutdown(false);
-    }
-    app_manager.move_to_next_app();
-    drop(app_manager);
-    trace!("Jump to app {}", current_app);
-    extern "C" {
-        fn __restore(cx_addr: usize);
-    }
-
-    unsafe {
-        __restore(KERMEL_STACK[0].push_context(TrapContext::app_init_context(
-            get_base_i(current_app),
-            USER_STACK[0].get_sp(),
-        )) as *const _ as usize)
-    };
-    unreachable!();
 }
