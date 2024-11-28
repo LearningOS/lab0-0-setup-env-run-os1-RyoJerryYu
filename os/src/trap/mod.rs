@@ -3,7 +3,7 @@ use context::TrapContext;
 use log::trace;
 use riscv::register::{scause::{self, Exception, Trap}, stval, stvec, utvec::TrapMode};
 
-use crate::{batch::run_next_app, println, syscall};
+use crate::{loaders::run_next_app, println, syscall};
 
 pub mod context;
 

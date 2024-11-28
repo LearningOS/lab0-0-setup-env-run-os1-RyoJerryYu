@@ -5,9 +5,10 @@ mod lang_items;
 mod logging;
 mod sbi;
 mod sync;
-mod batch;
+mod loaders;
 mod trap;
 mod syscall;
+mod config;
 #[macro_use]
 mod console;
 
@@ -55,8 +56,8 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     trap::init();
-    batch::init();
-    batch::run_next_app();
+    loaders::init();
+    loaders::run_next_app();
     // sbi::shutdown(false);
 }
 
