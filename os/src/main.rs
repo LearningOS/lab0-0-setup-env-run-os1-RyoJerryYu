@@ -8,6 +8,7 @@ mod sync;
 mod loaders;
 mod trap;
 mod syscall;
+mod task;
 mod config;
 #[macro_use]
 mod console;
