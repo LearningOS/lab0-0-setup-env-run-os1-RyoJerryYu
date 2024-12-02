@@ -11,7 +11,7 @@ extern "C" {
 
 impl TaskContext {
     pub fn zero_init() -> Self {
-        TaskContext {
+        Self {
             ra: 0,
             sp: 0,
             s: [0; 12],
@@ -19,9 +19,9 @@ impl TaskContext {
     }
 
     pub fn goto_restore(kstack_ptr: usize) -> Self {
-        TaskContext {
+        Self {
             ra: __restore as usize,
-            sp: kstack_ptr + core::mem::size_of::<TaskContext>(),
+            sp: kstack_ptr,
             s: [0; 12],
         }
     }
