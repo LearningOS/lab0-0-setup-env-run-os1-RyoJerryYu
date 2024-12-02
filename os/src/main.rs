@@ -10,6 +10,7 @@ mod trap;
 mod syscall;
 mod task;
 mod config;
+mod timer;
 #[macro_use]
 mod console;
 
