@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
+
+extern crate alloc;
 mod lang_items;
 mod logging;
 mod sbi;
@@ -11,6 +14,7 @@ mod syscall;
 mod task;
 mod config;
 mod timer;
+mod mm;
 #[macro_use]
 mod console;
 
@@ -57,6 +61,7 @@ pub fn rust_main() -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    mm::init();
     trap::init();
     loaders::init();
     trap::enable_timer_interrupt();
