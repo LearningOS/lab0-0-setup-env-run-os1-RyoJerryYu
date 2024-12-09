@@ -18,6 +18,9 @@ mod mm;
 #[macro_use]
 mod console;
 
+#[macro_use]
+extern crate bitflags;
+
 use core::arch::global_asm;
 
 use log::{debug, info, trace, warn, error};
