@@ -156,6 +156,20 @@ impl PhysPageNum {
     }
 }
 
+impl VirtPageNum {
+    /// get page table entry indexes
+    /// 9 bits for each level
+    pub fn indexes(&self) -> [usize; 3] {
+        let mut vpn = self.0;
+        let mut idx = [0_usize; 3];
+        for i in (0..3).rev() {
+            idx[i] = vpn & ((1 << 9) - 1);
+            vpn >>= 9;
+        }
+        idx
+    }
+}
+
 impl From<PhysAddr> for PhysPageNum {
     fn from(v: PhysAddr) -> Self {
         assert_eq!(v.page_offset(), 0);
