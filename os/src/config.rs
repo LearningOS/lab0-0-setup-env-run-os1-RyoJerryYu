@@ -8,3 +8,4 @@ pub const APP_SIZE_LIMIT: usize = 0x20000;
 pub const CLOCK_FREQ: usize = 12500000;
 pub const PAGE_SIZE: usize = 0x1000; // 4 KiB
 pub const PAGE_SIZE_BITS: usize = 0xc; // 2^12 = 4 KiB
+pub const MEMORY_END: usize = 0x8800_0000;

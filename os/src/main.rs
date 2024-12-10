@@ -4,17 +4,17 @@
 #![feature(alloc_error_handler)]
 
 extern crate alloc;
+mod config;
 mod lang_items;
+mod loaders;
 mod logging;
+mod mm;
 mod sbi;
 mod sync;
-mod loaders;
-mod trap;
 mod syscall;
 mod task;
-mod config;
 mod timer;
-mod mm;
+mod trap;
 #[macro_use]
 mod console;
 
@@ -23,7 +23,7 @@ extern crate bitflags;
 
 use core::arch::global_asm;
 
-use log::{debug, info, trace, warn, error};
+use log::{debug, error, info, trace, warn};
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
