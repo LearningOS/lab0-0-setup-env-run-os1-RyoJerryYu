@@ -1,6 +1,8 @@
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 use core::fmt::{self, Debug, Formatter};
 
+use super::page_table::PageTableEntry;
+
 const PA_WIDTH_SV39: usize = 56;
 const VA_WIDTH_SV39: usize = 39;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
@@ -133,6 +135,24 @@ impl PhysAddr {
     }
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
+    }
+}
+
+impl PhysPageNum {
+    /// get page table entry array
+    /// on 64-bit system, each PTE occupies 8 bytes
+    pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
+        let pa: PhysAddr = self.clone().into();
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, PAGE_SIZE / 8) }
+    }
+    /// get bytes array for page
+    pub fn get_bytes_array(&self) -> &'static mut [u8] {
+        let pa: PhysAddr = self.clone().into();
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE) }
+    }
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        let pa: PhysAddr = self.clone().into();
+        unsafe { &mut *(pa.0 as *mut T) }
     }
 }
 
