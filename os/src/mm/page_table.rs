@@ -1,3 +1,4 @@
+use alloc::vec;
 use alloc::vec::Vec;
 
 use super::{
@@ -55,6 +56,9 @@ impl PageTableEntry {
 
 pub struct PageTable {
     root_ppn: PhysPageNum,
+
+    // frames for page table themselves
+    // root_ppn 下的页表对应的页帧都归 PageTable 管理
     frames: Vec<FrameTracker>,
 }
 
@@ -66,6 +70,7 @@ impl PageTable {
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
         for i in 0..3 {
+            // ppn 对应页帧是一个页表，返回页中 index 的页表项
             let pte = &mut ppn.get_pte_array()[idxs[i]];
             if i == 2 {
                 result = Some(pte);
@@ -73,6 +78,9 @@ impl PageTable {
             }
             if !pte.is_valid() {
                 let frame = frame_alloc().unwrap();
+                // here the pte is valid,
+                // but it is not the last level pte
+                // so it will no return
                 // will modify the entry in the page table of ppn
                 *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
                 self.frames.push(frame);
@@ -106,6 +114,11 @@ impl PageTable {
     }
     /// 将 vpn 映射到 ppn
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
+        // here is the last level pte
+        // which should directly point to the physical page to be mapped
+        // map a page should be not mapped before
+        // so it should be invalid
+        // note that the page of ppn do not belong to the page table
         let pte = self.find_pte_create(vpn).unwrap();
         // find_pte_create 中，自动创建了不存在的页表项
         // 页表本身对应的页表项已经设为 valid
@@ -120,10 +133,20 @@ impl PageTable {
         *pte = PageTableEntry::empty();
     }
 
+    /// no frames under the returned entity,
+    /// so it could only be used to get arguments.
     pub fn from_token(satp: usize) -> Self {
         Self {
             root_ppn: PhysPageNum::from(satp & ((1usize << 44) - 1)),
             frames: Vec::new(),
+        }
+    }
+    pub fn new() -> Self {
+        // alloc root frame
+        let frame = frame_alloc().unwrap();
+        PageTable {
+            root_ppn: frame.ppn,
+            frames: vec![frame],
         }
     }
     /// from vpn to pte
