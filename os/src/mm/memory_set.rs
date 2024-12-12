@@ -1,3 +1,5 @@
+use core::arch::asm;
+
 use super::{
     address::{PhysPageNum, StepByOne, VPNRange, VirtAddr, VirtPageNum},
     frame_allocator::{frame_alloc, FrameTracker},
@@ -6,8 +8,11 @@ use super::{
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE},
     println,
+    sync::UPSafeCell,
 };
-use alloc::{collections::btree_map::BTreeMap, vec::Vec};
+use alloc::{collections::btree_map::BTreeMap, sync::Arc, vec::Vec};
+use lazy_static::lazy_static;
+use riscv::register::satp;
 
 extern "C" {
     fn stext();
@@ -124,8 +129,8 @@ impl MapArea {
     }
 }
 
-/// A struct who manages the whole memory space
-/// for a process, including the page table and the areas.
+/// A struct who manages the whole memory space for a process,
+/// including the page table and the areas.
 pub struct MemorySet {
     page_table: PageTable, // 管理页表本身的页帧
     areas: Vec<MapArea>,   // 管理映射区域的页帧
@@ -145,7 +150,7 @@ impl MemorySet {
         }
         self.areas.push(map_area);
     }
-    /// Assume that no conflicts.
+    /// insert a new area to the memory set
     pub fn insert_framed_area(
         &mut self,
         start_va: VirtAddr,
@@ -156,6 +161,14 @@ impl MemorySet {
             MapArea::new(start_va, end_va, MapType::Framed, permission),
             None,
         );
+    }
+
+    pub fn activate(&self) {
+        let satp = self.page_table.token();
+        unsafe {
+            satp::write(satp);
+            asm!("sfence.vma");
+        }
     }
 
     fn map_trampoline(&mut self) {
@@ -294,4 +307,10 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize,
         )
     }
+}
+
+lazy_static! {
+    /// a memory set instance through lazy_static! managing kernel space
+    pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
+        Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
