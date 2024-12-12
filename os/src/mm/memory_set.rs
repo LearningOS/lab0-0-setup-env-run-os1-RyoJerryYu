@@ -171,6 +171,10 @@ impl MemorySet {
         }
     }
 
+    pub fn token(&self) -> usize {
+        self.page_table.token()
+    }
+
     fn map_trampoline(&mut self) {
         todo!()
     }

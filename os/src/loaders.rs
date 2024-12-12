@@ -1,7 +1,9 @@
 use core::arch::asm;
 
 use crate::config::*;
+use crate::mm::KERNEL_SPACE;
 use crate::trap::context::TrapContext;
+use crate::trap::trap_handler;
 
 #[repr(align(4096))]
 #[derive(Clone, Copy)]
@@ -115,6 +117,9 @@ pub fn init_app_cx(app_id: usize) -> usize {
     KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
         get_base_i(app_id),
         USER_STACK[app_id].get_sp(),
+        KERNEL_SPACE.exclusive_access().token(),
+        0, // TODO: set the kernel_sp
+        trap_handler as usize,
     )) as *const _ as usize
 }
 
