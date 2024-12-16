@@ -65,6 +65,7 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     mm::init();
+    mm::remap_test();
     trap::init();
     loaders::init();
     trap::enable_timer_interrupt();

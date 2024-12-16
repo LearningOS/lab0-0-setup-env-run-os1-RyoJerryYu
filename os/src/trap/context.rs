@@ -1,4 +1,7 @@
 use riscv::register::sstatus::{self, Sstatus};
+
+/// TrapContext is as well as a Stack Frame in kernel space
+/// exactly the frame for __alltraps and __restore in trap.S
 #[repr(C)]
 pub struct TrapContext {
     pub x: [usize; 32],

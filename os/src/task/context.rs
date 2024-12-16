@@ -1,3 +1,5 @@
+use crate::trap::trap_return;
+
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub struct TaskContext {
@@ -18,9 +20,11 @@ impl TaskContext {
         }
     }
 
-    pub fn goto_restore(kstack_ptr: usize) -> Self {
+    /// new a TaskContext that
+    /// will go to trap_return when returned in trap_handler
+    pub fn goto_trap_return(kstack_ptr: usize) -> Self {
         Self {
-            ra: __restore as usize,
+            ra: trap_return as usize,
             sp: kstack_ptr,
             s: [0; 12],
         }

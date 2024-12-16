@@ -1,9 +1,9 @@
 use core::arch::asm;
 
 use super::{
-    address::{PhysPageNum, StepByOne, VPNRange, VirtAddr, VirtPageNum},
+    address::{PhysAddr, PhysPageNum, StepByOne, VPNRange, VirtAddr, VirtPageNum},
     frame_allocator::{frame_alloc, FrameTracker},
-    page_table::{PTEFlags, PageTable},
+    page_table::{PTEFlags, PageTable, PageTableEntry},
 };
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE},
@@ -175,8 +175,19 @@ impl MemorySet {
         self.page_table.token()
     }
 
+    pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
+        self.page_table.translate(vpn)
+    }
+
+    /// map trampoline
+    /// all space have a same mapping for trampoline
+    /// so that when trap happens, pc can jump to trampoline correctly
     fn map_trampoline(&mut self) {
-        todo!()
+        self.page_table.map(
+            VirtAddr::from(TRAMPOLINE).into(),
+            PhysAddr::from(strampoline as usize).into(),
+            PTEFlags::R | PTEFlags::X,
+        );
     }
 
     pub fn new_kernel() -> Self {
@@ -243,6 +254,7 @@ impl MemorySet {
         );
         memory_set
     }
+
     /// Include sections in elf and trampoline and TrapContext and user stack,
     /// also returns user_sp and entry point.
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
@@ -317,4 +329,37 @@ lazy_static! {
     /// a memory set instance through lazy_static! managing kernel space
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
+}
+
+#[allow(unused)]
+pub fn remap_test() {
+    let mut kernel_space = KERNEL_SPACE.exclusive_access();
+    let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
+    let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();
+    let mid_data: VirtAddr = ((sdata as usize + edata as usize) / 2).into();
+    assert_eq!(
+        kernel_space
+            .page_table
+            .translate(mid_text.floor())
+            .unwrap()
+            .writable(),
+        false
+    );
+    assert_eq!(
+        kernel_space
+            .page_table
+            .translate(mid_rodata.floor())
+            .unwrap()
+            .writable(),
+        false,
+    );
+    assert_eq!(
+        kernel_space
+            .page_table
+            .translate(mid_data.floor())
+            .unwrap()
+            .executable(),
+        false,
+    );
+    println!("remap_test passed!");
 }

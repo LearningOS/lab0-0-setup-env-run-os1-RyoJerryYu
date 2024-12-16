@@ -1,11 +1,12 @@
+use alloc::vec::Vec;
 use context::TaskContext;
 use lazy_static::lazy_static;
 use task::TaskControlBlock;
 
 use crate::{
-    config::MAX_APP_NUM,
-    loaders::{get_num_app, init_app_cx},
+    loaders::{get_app_data, get_num_app},
     sync::UPSafeCell,
+    trap::context::TrapContext,
 };
 
 mod context;
@@ -18,21 +19,16 @@ pub struct TaskManager {
 }
 
 struct TaskManagerInner {
-    tasks: [TaskControlBlock; MAX_APP_NUM], // containing task context and status for each task
-    current_task: usize,                    // index of the current running task
+    tasks: Vec<TaskControlBlock>, // containing task context and status for each task
+    current_task: usize,          // index of the current running task
 }
 
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
-        let mut tasks = [TaskControlBlock {
-            task_status: task::TaskStatus::UnInit,
-            task_cx: context::TaskContext::zero_init(),
-        }; MAX_APP_NUM];
-
-        for (i, task) in tasks.iter_mut().enumerate() {
-            task.task_cx = TaskContext::goto_restore(init_app_cx(i));
-            task.task_status = task::TaskStatus::Ready;
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
+        for i in 0..num_app {
+            tasks.push(TaskControlBlock::new(get_app_data(i), i));
         }
 
         TaskManager {
@@ -102,9 +98,21 @@ impl TaskManager {
         let current_task = inner.current_task; // tips: use a variable to avoid borrow checker error
         inner.tasks[current_task].task_status = task::TaskStatus::Exited;
     }
+
+    fn get_current_token(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_user_token()
+    }
+
+    fn get_current_trap_cx(&self) -> &'static mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_trap_cx()
+    }
 }
 
-pub fn run_first_task() -> !{
+pub fn run_first_task() -> ! {
     TASK_MANAGER.run_first_task();
 }
 

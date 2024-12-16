@@ -1,12 +1,15 @@
-use core::arch::global_asm;
 use context::TrapContext;
+use core::arch::global_asm;
 use log::trace;
-use riscv::register::{scause::{self, Exception, Interrupt, Trap}, sie, stval, stvec, utvec::TrapMode};
+use riscv::register::{
+    scause::{self, Exception, Interrupt, Trap},
+    sie, stval, stvec,
+    utvec::TrapMode,
+};
 
 use crate::{println, syscall, task::suspend_current_and_run_next, timer::set_next_trigger};
 
 pub mod context;
-
 
 global_asm!(include_str!("trap.S"));
 
@@ -33,15 +36,14 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
             trace!("[kernel] UserEnvCall, syscall id = {}", cx.x[17]);
-            cx.sepc += 4;      
+            cx.sepc += 4;
             cx.x[10] = syscall::syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
-        Trap::Exception(Exception::StoreFault) |
-        Trap::Exception(Exception::StorePageFault) => {
+        Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
             println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
             panic!("[kernel] Cannot continue!");
             // run_next_app();
-        } 
+        }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
             panic!("[kernel] Cannot continue!");
@@ -51,9 +53,21 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             set_next_trigger();
             suspend_current_and_run_next();
         }
-        _=> {
-            panic!("unhandled trap: {:?}, stval = {:#x}!\n", scause.cause(), stval);
+        _ => {
+            panic!(
+                "unhandled trap: {:?}, stval = {:#x}!\n",
+                scause.cause(),
+                stval
+            );
         }
     }
     cx
+}
+
+#[no_mangle]
+/// set the new addr of __restore asm function in TRAMPOLINE page,
+/// set the reg a0 = trap_cx_ptr, reg a1 = phy addr of usr page table,
+/// finally, jump to new addr of __restore asm function
+pub fn trap_return() -> ! {
+    todo!()
 }

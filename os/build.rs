@@ -1,13 +1,13 @@
 use std::fs::{read_dir, File};
 use std::io::{Result, Write};
 
-static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
-
 fn main() {
     println!("cargo:rerun-if-changed=../user/src/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
     insert_app_data().unwrap();
 }
+
+static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
 
 fn insert_app_data() -> Result<()> {
     let mut f = File::create("src/link_app.S").unwrap();
@@ -46,8 +46,9 @@ _num_app:
     .section .data
     .global app_{0}_start
     .global app_{0}_end
+    .align 3
 app_{0}_start:
-    .incbin "{2}{1}.bin"
+    .incbin "{2}{1}"
 app_{0}_end:"#,
             idx, app, TARGET_PATH
         )?;

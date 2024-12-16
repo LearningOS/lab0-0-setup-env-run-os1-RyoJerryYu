@@ -70,7 +70,7 @@ fn get_app_start_arr_ptr() -> *const usize {
     unsafe { (_num_app as usize as *const usize).add(1) }
 }
 
-fn get_app_data(app_id: usize) -> &'static [u8] {
+pub fn get_app_data(app_id: usize) -> &'static [u8] {
     let num_app = get_num_app();
     let app_start_arr_ptr = get_app_start_arr_ptr();
     let app_start = unsafe { core::slice::from_raw_parts(app_start_arr_ptr, num_app + 1) };
