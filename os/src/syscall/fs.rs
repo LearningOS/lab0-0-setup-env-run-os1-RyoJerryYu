@@ -1,21 +1,18 @@
-use log::trace;
-
-use crate::print;
+use crate::{mm::translated_byte_buffer, print, task::current_user_token};
 
 const FD_STDOUT: usize = 1;
 
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     match fd {
         FD_STDOUT => {
-            trace!("sys_write: fd={}, buf={:p}, len={}", fd, buf, len);
-            let buffer = unsafe { core::slice::from_raw_parts(buf, len) };
-            let s = core::str::from_utf8(buffer).unwrap();
-            print!("{}", s);
+            let buffers = translated_byte_buffer(current_user_token(), buf, len);
+            for buffer in buffers {
+                print!("{}", core::str::from_utf8(buffer).unwrap());
+            }
             len as isize
         }
         _ => {
-            panic!("sys_write: not support fd: {}", fd);
-        },
+            panic!("Unsupported fd in sys_write!");
+        }
     }
 }
-
