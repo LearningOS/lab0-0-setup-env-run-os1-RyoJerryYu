@@ -7,9 +7,6 @@ pub struct TaskContext {
     sp: usize,
     s: [usize; 12], // s0-s11
 }
-extern "C" {
-    fn __restore(cx_addr: usize);
-}
 
 impl TaskContext {
     pub fn zero_init() -> Self {

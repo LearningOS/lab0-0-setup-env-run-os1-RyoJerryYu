@@ -182,6 +182,8 @@ impl MemorySet {
     /// map trampoline
     /// all space have a same mapping for trampoline
     /// so that when trap happens, pc can jump to trampoline correctly
+    /// Note: all app just have the same mapping for trampoline,
+    /// It's physical address is different from virtual address.
     fn map_trampoline(&mut self) {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
