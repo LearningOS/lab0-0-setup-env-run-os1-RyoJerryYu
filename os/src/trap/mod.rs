@@ -23,6 +23,7 @@ global_asm!(include_str!("trap.S"));
 
 pub fn init() {
     set_kernel_trap_entry();
+    println!("++++ setup trap!     ++++");
 }
 
 fn set_kernel_trap_entry() {
@@ -48,6 +49,7 @@ pub fn enable_timer_interrupt() {
 /// handle an interrupt, exception, or system call from user space
 pub fn trap_handler() -> ! {
     set_kernel_trap_entry();
+    println!("trap_handler");
     let cx = current_trap_cx();
     let scause = scause::read();
     let stval = stval::read();

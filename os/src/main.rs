@@ -65,11 +65,10 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     mm::init();
-    mm::remap_test();
     trap::init();
-    loaders::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
+    println!("++++ setup timer!     ++++");
     task::run_first_task();
     // sbi::shutdown(false);
 }

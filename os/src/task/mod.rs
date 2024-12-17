@@ -5,6 +5,7 @@ use task::TaskControlBlock;
 
 use crate::{
     loaders::{get_app_data, get_num_app},
+    println,
     sync::UPSafeCell,
     trap::context::TrapContext,
 };
@@ -52,6 +53,7 @@ impl TaskManager {
 
         let mut _unused = TaskContext::zero_init();
 
+        println!("run_first_task");
         unsafe {
             switch::__switch(&mut _unused as *mut context::TaskContext, next_task_cx_ptr);
         }

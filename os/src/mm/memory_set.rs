@@ -204,6 +204,10 @@ impl MemorySet {
             ".bss [{:#x}, {:#x})",
             sbss_with_stack as usize, ebss as usize
         );
+        println!(
+            "physical memory [{:#x}, {:#x})",
+            ekernel as usize, MEMORY_END
+        );
         println!("mapping .text section");
         memory_set.push(
             MapArea::new(
@@ -254,6 +258,7 @@ impl MemorySet {
             ),
             None,
         );
+        println!("kernel memory set initialized");
         memory_set
     }
 
@@ -287,6 +292,12 @@ impl MemorySet {
                     map_perm |= MapPermission::X;
                 }
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
+                println!(
+                    "mapping [{:#x}, {:#x}) with permission {:?}",
+                    start_va.floor().0,
+                    end_va.ceil().0,
+                    map_perm
+                );
                 max_end_vpn = map_area.vpn_range.get_end();
                 memory_set.push(
                     map_area,
@@ -300,6 +311,12 @@ impl MemorySet {
         // guard page
         user_stack_bottom += PAGE_SIZE;
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
+        println!(
+            "mapping user stack [{:#x}, {:#x}) with permission {:?}",
+            user_stack_bottom,
+            user_stack_top,
+            MapPermission::R | MapPermission::W | MapPermission::U
+        );
         memory_set.push(
             MapArea::new(
                 user_stack_bottom.into(),
@@ -310,6 +327,12 @@ impl MemorySet {
             None,
         );
         // map TrapContext
+        println!(
+            "mapping TrapContext [{:#x}, {:#x}) with permission {:?}",
+            TRAP_CONTEXT,
+            TRAMPOLINE,
+            MapPermission::R | MapPermission::W
+        );
         memory_set.push(
             MapArea::new(
                 TRAP_CONTEXT.into(),
