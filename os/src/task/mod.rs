@@ -6,6 +6,7 @@ use task::TaskControlBlock;
 use crate::{
     loaders::{get_app_data, get_num_app},
     println,
+    sbi::shutdown,
     sync::UPSafeCell,
     trap::context::TrapContext,
 };
@@ -71,7 +72,8 @@ impl TaskManager {
     fn run_next_task(&self) {
         let next = self.find_next_task();
         if next.is_none() {
-            panic!("no task to run");
+            println!("no task to run");
+            shutdown(false);
         }
         let next = next.unwrap();
 

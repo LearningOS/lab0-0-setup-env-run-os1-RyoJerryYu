@@ -2,7 +2,7 @@ use crate::{
     config::TRAP_CONTEXT,
     mm::{MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
     println,
-    trap::context::TrapContext,
+    trap::{context::TrapContext, trap_handler},
 };
 
 use super::context::TaskContext;
@@ -47,7 +47,7 @@ impl TaskControlBlock {
 
         let task_control_block = Self {
             task_status,
-            task_cx: TaskContext::goto_trap_return(entry_point),
+            task_cx: TaskContext::goto_trap_return(kernel_stack_top),
             memory_set,
             trap_cx_ppn,
             base_size: user_sp, // user_sp is the top of user stack
@@ -60,7 +60,7 @@ impl TaskControlBlock {
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
             kernel_stack_top,
-            TRAP_CONTEXT,
+            trap_handler as usize,
         );
 
         task_control_block
