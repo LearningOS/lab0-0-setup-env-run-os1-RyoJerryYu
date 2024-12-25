@@ -22,6 +22,7 @@ fn insert_app_data() -> Result<()> {
         .collect();
     apps.sort();
 
+    // in _num_app section, first store the number of apps
     writeln!(
         f,
         r#"
@@ -33,11 +34,24 @@ _num_app:
         apps.len()
     )?;
 
+    // then store the start and end address of each app
     for i in 0..apps.len() {
         writeln!(f, r#"    .quad app_{}_start"#, i)?;
     }
     writeln!(f, r#"    .quad app_{}_end"#, apps.len() - 1)?;
 
+    // then the _app_names section, store the name of each app
+    writeln!(
+        f,
+        r#"
+    .global _app_names
+_app_names:"#
+    )?;
+    for app in apps.iter() {
+        writeln!(f, r#"    .string "{}""#, app)?;
+    }
+
+    // finally, store the binary data of each app
     for (idx, app) in apps.iter().enumerate() {
         println!("app_{}: {}", idx, app);
         writeln!(
