@@ -1,6 +1,6 @@
 use core::cell::RefMut;
 
-use alloc::{rc::Weak, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, sync::Weak, vec::Vec};
 
 use crate::{
     config::TRAP_CONTEXT,
