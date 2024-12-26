@@ -12,6 +12,7 @@ use crate::{
 };
 
 mod context;
+mod pid;
 mod switch;
 mod task;
 

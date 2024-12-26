@@ -163,6 +163,21 @@ impl MemorySet {
         );
     }
 
+    //
+    pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
+        if let Some((idx, area)) = self
+            .areas
+            .iter_mut()
+            .enumerate()
+            .find(|(_, area)| area.vpn_range.get_start() == start_vpn)
+        {
+            // the memory area for the start_vpn is found
+            // unmap it
+            area.unmap(&mut self.page_table);
+            self.areas.remove(idx);
+        }
+    }
+
     pub fn activate(&self) {
         let satp = self.page_table.token();
         unsafe {
