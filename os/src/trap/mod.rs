@@ -57,7 +57,9 @@ pub fn trap_handler() -> ! {
             cx.sepc += 4;
             let result = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
 
-            cx = current_trap_cx(); // for forked subprocess, do not use the old cx
+            // for sys_exec, the previous trap context is invalid
+            // because the memory set has been changed
+            cx = current_trap_cx();
             cx.x[10] = result;
         }
         Trap::Exception(Exception::StoreFault)
