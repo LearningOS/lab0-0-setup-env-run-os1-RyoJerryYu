@@ -92,9 +92,31 @@ impl TaskControlBlock {
 
         task_control_block
     }
+
     pub fn exec(&self, elf_data: &[u8]) {
-        todo!()
+        // init a new memory set for the new elf
+        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+        // trap context in new memory set
+        let trap_cx_ppn = memory_set
+            .translate(VirtAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .ppn();
+
+        let mut inner = self.inner_xclusive_access();
+        inner.memory_set = memory_set;
+        inner.trap_cx_ppn = trap_cx_ppn;
+
+        // set the new trap context
+        let trap_cx = inner.get_trap_cx();
+        *trap_cx = TrapContext::app_init_context(
+            entry_point,
+            user_sp,
+            KERNEL_SPACE.exclusive_access().token(),
+            self.kernel_stack.get_top(),
+            trap_handler as usize,
+        );
     }
+
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         let mut parent_inner = self.inner_xclusive_access();
 

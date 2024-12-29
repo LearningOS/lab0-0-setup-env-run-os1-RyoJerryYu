@@ -1,6 +1,11 @@
 use crate::{
+    loaders::get_app_data_by_name,
+    mm::translated_str,
     println,
-    task::{add_task, current_task, exit_current_and_run_next, suspend_current_and_run_next},
+    task::{
+        add_task, current_task, current_user_token, exit_current_and_run_next,
+        suspend_current_and_run_next,
+    },
     timer::get_time_ms,
 };
 
@@ -30,4 +35,16 @@ pub fn sys_fork() -> isize {
 
     add_task(new_task);
     new_pid as isize
+}
+
+pub fn sys_exec(path: *const u8) -> isize {
+    let token = current_user_token();
+    let path = translated_str(token, path);
+    if let Some(data) = get_app_data_by_name(path.as_str()) {
+        let task = current_task().unwrap();
+        task.exec(data);
+        0
+    } else {
+        -1
+    }
 }
