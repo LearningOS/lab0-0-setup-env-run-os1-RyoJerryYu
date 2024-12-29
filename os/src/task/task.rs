@@ -46,7 +46,7 @@ impl TaskControlBlock {
     pub fn inner_xclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
-    pub fn new(elf_data: &[u8], app_id: usize) -> Self {
+    pub fn new(elf_data: &[u8]) -> Self {
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
 
@@ -95,8 +95,45 @@ impl TaskControlBlock {
     pub fn exec(&self, elf_data: &[u8]) {
         todo!()
     }
-    pub fn fork(self: &Arc<TaskControlBlock>) -> Self {
-        todo!()
+    pub fn fork(self: &Arc<Self>) -> Arc<Self> {
+        let mut parent_inner = self.inner_xclusive_access();
+
+        let child_memory_set = MemorySet::from_existed_user(&parent_inner.memory_set);
+        // content of child trap context also copied from parent in from_existed_user
+        let child_trap_cx_ppn = child_memory_set
+            .translate(VirtAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .ppn(); // init the page for trap context
+
+        let pid_handle = pid_alloc();
+        let kernel_stack = KernelStack::new(&pid_handle);
+        let kernel_stack_top = kernel_stack.get_top();
+        // new tcb on the heap
+        let task_control_block = Arc::new(Self {
+            pid: pid_handle,
+            kernel_stack,
+            inner: unsafe {
+                UPSafeCell::new(TaskControlBlockInner {
+                    task_status: TaskStatus::Ready,
+                    task_cx: TaskContext::goto_trap_return(kernel_stack_top),
+                    memory_set: child_memory_set,
+                    trap_cx_ppn: child_trap_cx_ppn,
+                    base_size: parent_inner.base_size,
+                    parent: Some(Arc::downgrade(self)), // create a weak reference to parent
+                    children: Vec::new(),
+                    exit_code: 0,
+                })
+            },
+        });
+
+        // add child
+        parent_inner.children.push(task_control_block.clone());
+
+        // modify kernel_sp in trap_cx
+        let trap_cx = task_control_block.inner_xclusive_access().get_trap_cx();
+        trap_cx.kernel_sp = kernel_stack_top;
+
+        task_control_block
     }
 
     pub fn getpid(&self) -> usize {

@@ -49,19 +49,22 @@ pub fn enable_timer_interrupt() {
 /// handle an interrupt, exception, or system call from user space
 pub fn trap_handler() -> ! {
     set_kernel_trap_entry();
-    let cx = current_trap_cx();
     let scause = scause::read();
     let stval = stval::read();
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
+            let mut cx = current_trap_cx();
             cx.sepc += 4;
-            cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+            let result = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+
+            cx = current_trap_cx(); // for forked subprocess, do not use the old cx
+            cx.x[10] = result;
         }
         Trap::Exception(Exception::StoreFault)
         | Trap::Exception(Exception::StorePageFault)
         | Trap::Exception(Exception::LoadFault)
         | Trap::Exception(Exception::LoadPageFault) => {
-            println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, cx.sepc);
+            println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, current_trap_cx().sepc);
             exit_current_and_run_next();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
