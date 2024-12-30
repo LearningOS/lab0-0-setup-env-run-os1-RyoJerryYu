@@ -46,7 +46,7 @@ lazy_static! {
     pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe { UPSafeCell::new(Processor::new()) };
 }
 
-pub fn run_tasks() {
+pub fn run_tasks() -> ! {
     loop {
         let mut processor = PROCESSOR.exclusive_access();
         if let Some(next_task) = fetch_task() {
@@ -59,6 +59,9 @@ pub fn run_tasks() {
             processor.current = Some(next_task);
             drop(processor);
 
+            // if the task is the first time to run
+            // it will return to the trap_return
+            // defined in TaskControlblock::new
             unsafe {
                 switch::__switch(idle_task_cx_ptr, next_task_cx_ptr);
             }

@@ -20,35 +20,7 @@ mod switch;
 mod task;
 
 pub use manager::add_task;
-pub use processor::{current_task, current_trap_cx, current_user_token};
-impl TaskManager {
-    fn get_current_token(&self) -> usize {
-        let inner = self.inner.exclusive_access();
-        let current = inner.current_task;
-        inner.tasks[current].get_user_token()
-    }
-
-    fn get_current_trap_cx(&self) -> &'static mut TrapContext {
-        let inner = self.inner.exclusive_access();
-        let current = inner.current_task;
-        inner.tasks[current].get_trap_cx()
-    }
-}
-
-pub fn run_first_task() -> ! {
-    let mut inner = self.inner.exclusive_access();
-    inner.tasks[0].task_status = task::TaskStatus::Running;
-    let next_task_cx_ptr = &mut inner.tasks[0].task_cx as *mut context::TaskContext;
-    drop(inner);
-
-    let mut _unused = TaskContext::zero_init();
-
-    println!("run_first_task");
-    unsafe {
-        switch::__switch(&mut _unused as *mut context::TaskContext, next_task_cx_ptr);
-    }
-    unreachable!("Unreachable after switch, unless someone found the _unused TaskContext");
-}
+pub use processor::{current_task, current_trap_cx, current_user_token, run_tasks};
 
 pub fn suspend_current_and_run_next() {
     let current_task = take_current_task().unwrap();

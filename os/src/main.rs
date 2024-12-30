@@ -65,12 +65,14 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
     mm::init();
+    task::add_initproc();
+    println!("++++ after add_initproc!     ++++");
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     loaders::list_apps();
     println!("++++ setup timer!     ++++");
-    task::run_first_task();
+    task::run_tasks();
     // sbi::shutdown(false);
 }
 
