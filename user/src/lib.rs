@@ -4,7 +4,7 @@
 #![feature(panic_info_message)]
 
 use buddy_system_allocator::LockedHeap;
-use syscall::{sys_exec, sys_fork, sys_get_time, sys_getpid, sys_waitpid};
+use syscall::*;
 
 #[macro_use]
 pub mod console;
@@ -35,16 +35,16 @@ fn main() -> i32 {
 }
 
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
-    syscall::sys_read(fd, buf)
+    sys_read(fd, buf)
 }
 pub fn write(fd: usize, buf: &[u8]) -> isize {
-    syscall::sys_write(fd, buf)
+    sys_write(fd, buf)
 }
 pub fn exit(code: i32) -> ! {
-    syscall::sys_exit(code as usize)
+    sys_exit(code as usize)
 }
 pub fn yield_() {
-    syscall::sys_yield()
+    sys_yield()
 }
 pub fn get_time() -> isize {
     sys_get_time()
@@ -66,11 +66,19 @@ pub fn wait(exit_code: &mut i32) -> isize {
         }
     }
 }
-pub fn waitpid(pid: isize, exit_code: &mut i32) -> isize {
+pub fn waitpid(pid: usize, exit_code: &mut i32) -> isize {
     loop {
-        match sys_waitpid(pid, exit_code as *mut _) {
+        match sys_waitpid(pid as isize, exit_code as *mut _) {
             -2 => yield_(),
-            pid => return pid,
+            // -1 or a real pid
+            exit_pid => return exit_pid,
         }
+    }
+}
+
+pub fn sleep(period_ms: usize) {
+    let start = sys_get_time();
+    while sys_get_time() < start + period_ms as isize {
+        sys_yield();
     }
 }
