@@ -39,7 +39,7 @@ pub struct TaskControlBlockInner {
     pub base_size: usize,         // size for loading elf
     pub parent: Option<Weak<TaskControlBlock>>, // parent task weak reference
     pub children: Vec<Arc<TaskControlBlock>>, // children task owned reference
-    pub exit_code: usize,         // exit code for waitpid
+    pub exit_code: i32,           // exit code for waitpid
 }
 
 impl TaskControlBlock {

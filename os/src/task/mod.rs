@@ -34,11 +34,29 @@ pub fn suspend_current_and_run_next() {
     schedule(current_task_cx_ptr);
 }
 
-pub fn exit_current_and_run_next() {
-    let mut inner = self.inner.exclusive_access();
-    let current_task = inner.current_task; // tips: use a variable to avoid borrow checker error
-    inner.tasks[current_task].task_status = task::TaskStatus::Exited;
-    run_next_task();
+pub fn exit_current_and_run_next(exit_code: i32) {
+    let task = take_current_task().unwrap();
+    let mut inner = task.inner_xclusive_access();
+    inner.task_status = task::TaskStatus::Zombie;
+    inner.exit_code = exit_code;
+
+    // move children to INITPROC
+    {
+        let mut initproc_inner = INITPROC.inner_xclusive_access();
+        for child in inner.children.iter() {
+            let mut child_inner = child.inner_xclusive_access();
+            child_inner.parent = Some(Arc::downgrade(&INITPROC));
+            initproc_inner.children.push(child.clone());
+        }
+    }
+
+    inner.children.clear();
+    inner.memory_set.recycle_data_pages();
+    drop(inner);
+    drop(task);
+
+    let mut _unused = TaskContext::zero_init();
+    schedule(&mut _unused as *mut TaskContext);
 }
 
 lazy_static! {

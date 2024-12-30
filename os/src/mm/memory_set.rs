@@ -203,6 +203,11 @@ impl MemorySet {
         self.page_table.translate(vpn)
     }
 
+    /// clear all user space pages
+    pub fn recycle_data_pages(&mut self) {
+        self.areas.clear();
+    }
+
     /// map trampoline
     /// all space have a same mapping for trampoline
     /// so that when trap happens, pc can jump to trampoline correctly
