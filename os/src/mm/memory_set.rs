@@ -204,6 +204,7 @@ impl MemorySet {
     }
 
     /// clear all user space pages
+    /// it will not clear the kernel space
     pub fn recycle_data_pages(&mut self) {
         self.areas.clear();
     }
@@ -213,6 +214,8 @@ impl MemorySet {
     /// so that when trap happens, pc can jump to trampoline correctly
     /// Note: all app just have the same mapping for trampoline,
     /// It's physical address is different from virtual address.
+    /// It do not append MapArea to self.areas,
+    /// so the trampoline will not be recycled when recycle_data_pages.
     fn map_trampoline(&mut self) {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
