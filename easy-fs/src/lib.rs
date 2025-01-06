@@ -6,4 +6,5 @@ mod layout;
 
 extern crate alloc;
 
+// 512 bytes per block
 pub const BLOCK_SZ: usize = 512;
