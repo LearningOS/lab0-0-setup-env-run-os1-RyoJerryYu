@@ -310,4 +310,88 @@ impl DiskInode {
         self.indirect2 = 0;
         v
     }
+
+    /// Read data from current disk inode
+    pub fn read_at(
+        &self,
+        offset: usize,
+        buf: &mut [u8],
+        block_device: &Arc<dyn BlockDevice>,
+    ) -> usize {
+        let mut start = offset;
+        let end = (offset + buf.len()).min(self.size as usize);
+        if start >= end {
+            // only when start is over the size
+            return 0;
+        }
+        let mut start_block = start / BLOCK_SZ;
+        let mut read_size = 0usize;
+        loop {
+            // calculate end of current block
+            // start upper align to BLOCK_SZ
+            let mut end_current_block = (start / BLOCK_SZ + 1) * BLOCK_SZ;
+            end_current_block = end_current_block.min(end);
+            // read and update read size
+            let block_read_size = end_current_block - start;
+            let dst = &mut buf[read_size..read_size + block_read_size]; // dst is slice in buf
+            get_block_cache(
+                self.get_block_id(start_block as u32, block_device) as usize,
+                Arc::clone(block_device),
+            )
+            .lock()
+            .read(0, |data_block: &DataBlock| {
+                let src = &data_block[start % BLOCK_SZ..start % BLOCK_SZ + block_read_size];
+                dst.copy_from_slice(src);
+            });
+            read_size += block_read_size;
+            // move to next block
+            if end_current_block == end {
+                break;
+            }
+            start_block += 1;
+            start = end_current_block;
+        }
+        read_size
+    }
+
+    /// Write data into current disk inode
+    /// size must be adjusted properly beforehand
+    /// need to call increase_size before write_at if necessary
+    pub fn write_at(
+        &mut self,
+        offset: usize,
+        buf: &[u8],
+        block_device: &Arc<dyn BlockDevice>,
+    ) -> usize {
+        let mut start = offset;
+        let end = (offset + buf.len()).min(self.size as usize);
+        assert!(start <= end);
+        let mut start_block = start / BLOCK_SZ;
+        let mut write_size = 0usize;
+        loop {
+            // calculate end of current block
+            let mut end_current_block = (start / BLOCK_SZ + 1) * BLOCK_SZ;
+            end_current_block = end_current_block.min(end);
+            // write and update write size
+            let block_write_size = end_current_block - start;
+            get_block_cache(
+                self.get_block_id(start_block as u32, block_device) as usize,
+                Arc::clone(block_device),
+            )
+            .lock()
+            .modify(0, |data_block: &mut DataBlock| {
+                let src = &buf[write_size..write_size + block_write_size];
+                let dst = &mut data_block[start % BLOCK_SZ..start % BLOCK_SZ + block_write_size];
+                dst.copy_from_slice(src);
+            });
+            write_size += block_write_size;
+            // move to next block
+            if end_current_block == end {
+                break;
+            }
+            start_block += 1;
+            start = end_current_block;
+        }
+        write_size
+    }
 }
