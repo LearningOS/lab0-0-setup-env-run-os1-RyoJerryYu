@@ -395,3 +395,50 @@ impl DiskInode {
         write_size
     }
 }
+
+// an entry in the directory
+// 32 bytes
+#[repr(C)]
+pub struct DirEntry {
+    name: [u8; NAME_LENGTH_LIMIT + 1],
+    inode_number: u32,
+}
+
+pub const DIRENT_SZ: usize = core::mem::size_of::<DirEntry>(); // 32 bytes
+
+impl DirEntry {
+    pub fn empty() -> Self {
+        Self {
+            name: [0u8; NAME_LENGTH_LIMIT + 1],
+            inode_number: 0,
+        }
+    }
+    pub fn new(name: &str, inode_number: u32) -> Self {
+        let mut bytes = [0u8; NAME_LENGTH_LIMIT + 1];
+        bytes[..name.len()].copy_from_slice(name.as_bytes());
+        Self {
+            name: bytes,
+            inode_number,
+        }
+    }
+
+    /// Serialize into bytes
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(self as *const _ as usize as *const u8, DIRENT_SZ) }
+    }
+    /// Serialize into mutable bytes
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        unsafe { core::slice::from_raw_parts_mut(self as *mut _ as usize as *mut u8, DIRENT_SZ) }
+    }
+
+    /// Get name of the entry
+    /// The name should not contain '\0'
+    pub fn name(&self) -> &str {
+        let len = (0usize..).find(|i| self.name[*i] == 0).unwrap();
+        core::str::from_utf8(&self.name[..len]).unwrap()
+    }
+    /// Get inode number of the entry
+    pub fn inode_number(&self) -> u32 {
+        self.inode_number
+    }
+}
