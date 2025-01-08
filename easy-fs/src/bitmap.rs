@@ -68,4 +68,9 @@ impl Bitmap {
             bitmap_block[bits64_pos] &= !(1 << inner_pos);
         });
     }
+
+    /// Return the maximum block number that can be represented by the bitmap
+    pub fn maximum(&self) -> usize {
+        self.blocks * BLOCK_BITS
+    }
 }

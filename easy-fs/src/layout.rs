@@ -61,7 +61,7 @@ pub enum DiskInodeType {
 /// A indirect block
 type IndirectBlock = [u32; BLOCK_SZ / 4];
 /// A data block
-type DataBlock = [u8; BLOCK_SZ];
+pub type DataBlock = [u8; BLOCK_SZ];
 
 /// DiskInode is the index node stored in disk
 /// 索引节点
