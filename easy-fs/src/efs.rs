@@ -6,6 +6,7 @@ use crate::{
     block_cache::get_block_cache,
     block_dev::BlockDevice,
     layout::{DataBlock, DiskInode, DiskInodeType, SuperBlock},
+    vfs::Inode,
     BLOCK_SZ,
 };
 
@@ -100,6 +101,14 @@ impl EasyFileSystem {
                 };
                 Arc::new(Mutex::new(efs))
             })
+    }
+
+    pub fn root_inode(efs: &Arc<Mutex<Self>>) -> Inode {
+        let block_device = Arc::clone(&efs.lock().block_device);
+        // acquire efs lock temporarily
+        let (block_id, block_offset) = efs.lock().get_disk_inode_pos(0);
+        // release efs lock
+        Inode::new(block_id, block_offset, Arc::clone(efs), block_device)
     }
 
     /// Get inode by id
