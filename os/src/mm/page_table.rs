@@ -223,3 +223,60 @@ pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
         .unwrap()
         .get_mut()
 }
+
+/// UserBuffer is u8 slice array in user space
+pub struct UserBuffer {
+    pub buffers: Vec<&'static mut [u8]>,
+}
+
+impl UserBuffer {
+    pub fn new(buffers: Vec<&'static mut [u8]>) -> Self {
+        Self { buffers }
+    }
+
+    pub fn len(&self) -> usize {
+        self.buffers
+            .iter()
+            .map(|buffer| buffer.len())
+            .reduce(usize::wrapping_add)
+            .unwrap()
+    }
+}
+
+impl IntoIterator for UserBuffer {
+    type Item = *mut u8;
+    type IntoIter = UserBufferIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        UserBufferIterator {
+            buffers: self.buffers,
+            current_buffer: 0,
+            current_idx: 0,
+        }
+    }
+}
+
+pub struct UserBufferIterator {
+    buffers: Vec<&'static mut [u8]>,
+    current_buffer: usize,
+    current_idx: usize,
+}
+
+impl Iterator for UserBufferIterator {
+    type Item = *mut u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_buffer >= self.buffers.len() {
+            return None;
+        }
+
+        let r = &mut self.buffers[self.current_buffer][self.current_idx] as *mut u8;
+        if self.current_idx + 1 == self.buffers[self.current_buffer].len() {
+            self.current_buffer += 1;
+            self.current_idx = 0;
+        } else {
+            self.current_idx += 1;
+        }
+        Some(r)
+    }
+}
