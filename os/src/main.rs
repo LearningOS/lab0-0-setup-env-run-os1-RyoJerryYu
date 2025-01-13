@@ -5,6 +5,8 @@
 
 extern crate alloc;
 mod config;
+mod drivers;
+mod fs;
 mod lang_items;
 mod loaders;
 mod logging;
