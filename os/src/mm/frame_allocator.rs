@@ -117,7 +117,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
 }
 
 /// Private, 由 FrameTracker 的生命周期来管理物理帧的释放
-fn frame_dealloc(ppn: PhysPageNum) {
+pub fn frame_dealloc(ppn: PhysPageNum) {
     FRAME_ALLOCATOR.exclusive_access().dealloc(ppn);
 }
 
