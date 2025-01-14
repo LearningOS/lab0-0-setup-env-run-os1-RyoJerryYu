@@ -25,7 +25,7 @@ pub use processor::{current_task, current_trap_cx, current_user_token, run_tasks
 pub fn suspend_current_and_run_next() {
     let current_task = take_current_task().unwrap();
 
-    let mut current_task_inner = current_task.inner_xclusive_access();
+    let mut current_task_inner = current_task.inner_exclusive_access();
     let current_task_cx_ptr = &mut current_task_inner.task_cx as *mut context::TaskContext;
     current_task_inner.task_status = task::TaskStatus::Ready;
     drop(current_task_inner);
@@ -36,15 +36,15 @@ pub fn suspend_current_and_run_next() {
 
 pub fn exit_current_and_run_next(exit_code: i32) {
     let task = take_current_task().unwrap();
-    let mut inner = task.inner_xclusive_access();
+    let mut inner = task.inner_exclusive_access();
     inner.task_status = task::TaskStatus::Zombie;
     inner.exit_code = exit_code;
 
     // move children to INITPROC
     {
-        let mut initproc_inner = INITPROC.inner_xclusive_access();
+        let mut initproc_inner = INITPROC.inner_exclusive_access();
         for child in inner.children.iter() {
-            let mut child_inner = child.inner_xclusive_access();
+            let mut child_inner = child.inner_exclusive_access();
             child_inner.parent = Some(Arc::downgrade(&INITPROC));
             initproc_inner.children.push(child.clone());
         }

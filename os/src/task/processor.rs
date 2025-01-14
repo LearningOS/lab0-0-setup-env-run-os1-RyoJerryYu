@@ -51,7 +51,7 @@ pub fn run_tasks() -> ! {
         let mut processor = PROCESSOR.exclusive_access();
         if let Some(next_task) = fetch_task() {
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
-            let mut next_task_inner = next_task.inner_xclusive_access();
+            let mut next_task_inner = next_task.inner_exclusive_access();
             let next_task_cx_ptr = &mut next_task_inner.task_cx as *mut TaskContext;
             next_task_inner.task_status = TaskStatus::Running;
             drop(next_task_inner);
@@ -79,14 +79,14 @@ pub fn current_task() -> Option<Arc<TaskControlBlock>> {
 
 pub fn current_user_token() -> usize {
     current_task()
-        .map(|task| task.inner_xclusive_access().get_user_token())
+        .map(|task| task.inner_exclusive_access().get_user_token())
         .unwrap()
 }
 
 pub fn current_trap_cx() -> &'static mut TrapContext {
     current_task()
         .unwrap()
-        .inner_xclusive_access()
+        .inner_exclusive_access()
         .get_trap_cx()
 }
 

@@ -49,7 +49,7 @@ pub struct TaskControlBlockInner {
 }
 
 impl TaskControlBlock {
-    pub fn inner_xclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
+    pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
     pub fn new(elf_data: &[u8]) -> Self {
@@ -109,7 +109,7 @@ impl TaskControlBlock {
             .unwrap()
             .ppn();
 
-        let mut inner = self.inner_xclusive_access();
+        let mut inner = self.inner_exclusive_access();
         inner.memory_set = memory_set;
         inner.trap_cx_ppn = trap_cx_ppn;
 
@@ -125,7 +125,7 @@ impl TaskControlBlock {
     }
 
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
-        let mut parent_inner = self.inner_xclusive_access();
+        let mut parent_inner = self.inner_exclusive_access();
 
         let child_memory_set = MemorySet::from_existed_user(&parent_inner.memory_set);
         // content of child trap context also copied from parent in from_existed_user
@@ -160,7 +160,7 @@ impl TaskControlBlock {
         parent_inner.children.push(task_control_block.clone());
 
         // modify kernel_sp in trap_cx
-        let trap_cx = task_control_block.inner_xclusive_access().get_trap_cx();
+        let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
         trap_cx.kernel_sp = kernel_stack_top;
 
         task_control_block
@@ -186,5 +186,14 @@ impl TaskControlBlockInner {
 
     pub fn is_zombie(&self) -> bool {
         self.task_status == TaskStatus::Zombie
+    }
+
+    pub fn alloc_fd(&mut self) -> usize {
+        if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
+            fd
+        } else {
+            self.fd_table.push(None);
+            self.fd_table.len() - 1
+        }
     }
 }

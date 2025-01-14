@@ -1,8 +1,9 @@
 use crate::{
-    mm::translated_byte_buffer,
+    fs::{open_file, OpenFlags},
+    mm::{translated_byte_buffer, translated_str},
     print,
     sbi::console_getchar,
-    task::{current_user_token, suspend_current_and_run_next},
+    task::{current_task, current_user_token, suspend_current_and_run_next},
 };
 
 const FD_STDIN: usize = 0;
@@ -48,4 +49,31 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
             panic!("Unsupported fd in sys_write!");
         }
     }
+}
+
+pub fn sys_open(path: *const u8, flags: u32) -> isize {
+    let task = current_task().unwrap();
+    let token = current_user_token();
+    let path = translated_str(token, path);
+    if let Some(inode) = open_file(&path, OpenFlags::from_bits(flags).unwrap()) {
+        let mut inner = task.inner_exclusive_access();
+        let fd = inner.alloc_fd();
+        inner.fd_table[fd] = Some(inode);
+        fd as isize
+    } else {
+        -1
+    }
+}
+
+pub fn sys_close(fd: usize) -> isize {
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if inner.fd_table[fd].is_none() {
+        return -1;
+    }
+    inner.fd_table[fd].take();
+    0
 }

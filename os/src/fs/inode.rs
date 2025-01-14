@@ -1,7 +1,8 @@
 use alloc::sync::Arc;
-use easy_fs::Inode;
+use easy_fs::{EasyFileSystem, Inode};
+use lazy_static::lazy_static;
 
-use crate::sync::UPSafeCell;
+use crate::{drivers::BLOCK_DEVICE, println, sync::UPSafeCell};
 
 use super::File;
 
@@ -58,5 +59,66 @@ impl File for OSInode {
             total_write_size += write_size;
         }
         total_write_size
+    }
+}
+
+lazy_static! {
+    pub static ref ROOT_INODE: Arc<Inode> = {
+        let efs = EasyFileSystem::open(BLOCK_DEVICE.clone());
+        Arc::new(EasyFileSystem::root_inode(&efs))
+    };
+}
+
+pub fn list_apps() {
+    println!("/**** APPS ****/");
+    for app in ROOT_INODE.ls() {
+        println!("{}", app);
+    }
+    println!("/**** END ****/");
+}
+
+bitflags! {
+    pub struct OpenFlags: u32 {
+        const RDONLY = 0;
+        const WRONLY = 1 << 0;
+        const RDWR = 1 << 1;
+        const CREATE = 1 << 9;
+        const TRUNC = 1 << 10;
+    }
+}
+
+impl OpenFlags {
+    /// return (readable, writable)
+    pub fn read_write(&self) -> (bool, bool) {
+        if self.is_empty() {
+            return (true, false);
+        } else if self.contains(Self::WRONLY) {
+            return (false, true);
+        } else {
+            return (true, true);
+        }
+    }
+}
+
+pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
+    let (readable, writable) = flags.read_write();
+    if flags.contains(OpenFlags::CREATE) {
+        if let Some(inode) = ROOT_INODE.find(name) {
+            // clear size
+            inode.clear();
+            Some(Arc::new(OSInode::new(readable, writable, inode)))
+        } else {
+            // create file
+            ROOT_INODE
+                .create(name)
+                .map(|inode| Arc::new(OSInode::new(readable, writable, inode)))
+        }
+    } else {
+        ROOT_INODE.find(name).map(|inode| {
+            if flags.contains(OpenFlags::TRUNC) {
+                inode.clear();
+            }
+            Arc::new(OSInode::new(readable, writable, inode))
+        })
     }
 }
