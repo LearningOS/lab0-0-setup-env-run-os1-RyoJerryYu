@@ -59,13 +59,6 @@ lazy_static! {
     };
 }
 
-pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
-    APP_NAMES
-        .iter()
-        .position(|&x| x == name)
-        .map(|id| get_app_data(id))
-}
-
 pub fn list_apps() {
     println!("/*** Apps ***/");
     for app in APP_NAMES.iter() {

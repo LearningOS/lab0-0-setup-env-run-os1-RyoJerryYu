@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 use easy_fs::{EasyFileSystem, Inode};
 use lazy_static::lazy_static;
 
@@ -24,6 +24,22 @@ impl OSInode {
             writable,
             inner: unsafe { UPSafeCell::new(OSInodeInner { offset: 0, inode }) },
         }
+    }
+
+    /// Read all data inside a inode into vector
+    pub fn read_all(&self) -> Vec<u8> {
+        let mut inner = self.inner.exclusive_access();
+        let mut buffer = [0u8; 512];
+        let mut v: Vec<u8> = Vec::new();
+        loop {
+            let len = inner.inode.read_at(inner.offset, &mut buffer);
+            if len == 0 {
+                break;
+            }
+            inner.offset += len;
+            v.extend_from_slice(&buffer[..len]);
+        }
+        v
     }
 }
 

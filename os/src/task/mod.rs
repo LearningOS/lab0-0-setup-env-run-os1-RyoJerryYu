@@ -5,7 +5,8 @@ use processor::{schedule, take_current_task};
 use task::TaskControlBlock;
 
 use crate::{
-    loaders::{get_app_data, get_app_data_by_name, get_num_app},
+    fs::{open_file, OpenFlags},
+    loaders::{get_app_data, get_num_app},
     println,
     sbi::shutdown,
     sync::UPSafeCell,
@@ -60,9 +61,11 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 }
 
 lazy_static! {
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::new(
-        get_app_data_by_name("initproc").unwrap(),
-    ));
+    pub static ref INITPROC: Arc<TaskControlBlock> = {
+        let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
+        let v = inode.read_all();
+        Arc::new(TaskControlBlock::new(v.as_slice()))
+    };
 }
 
 pub fn add_initproc() {
