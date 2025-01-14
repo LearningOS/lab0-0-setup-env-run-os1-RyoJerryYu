@@ -1,9 +1,14 @@
 use core::cell::RefMut;
 
-use alloc::{sync::Arc, sync::Weak, vec::Vec};
+use alloc::{
+    sync::{Arc, Weak},
+    vec,
+    vec::Vec,
+};
 
 use crate::{
     config::TRAP_CONTEXT,
+    fs::File,
     mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
     sync::UPSafeCell,
     trap::{context::TrapContext, trap_handler},
@@ -40,6 +45,7 @@ pub struct TaskControlBlockInner {
     pub parent: Option<Weak<TaskControlBlock>>, // parent task weak reference
     pub children: Vec<Arc<TaskControlBlock>>, // children task owned reference
     pub exit_code: i32,           // exit code for waitpid
+    pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>, // file descriptor table
 }
 
 impl TaskControlBlock {
@@ -76,6 +82,7 @@ impl TaskControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: vec![None; 16], // TODO: init this
                 })
             },
         };
@@ -144,6 +151,7 @@ impl TaskControlBlock {
                     parent: Some(Arc::downgrade(self)), // create a weak reference to parent
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: vec![None; 16], // TODO: init this
                 })
             },
         });
