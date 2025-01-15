@@ -68,20 +68,21 @@ fn easy_fs_pack() -> std::io::Result<()> {
 
     let efs = EasyFileSystem::create(block_file, 16 * 2048, 1);
     let root_inode = Arc::new(EasyFileSystem::root_inode(&efs));
-    let apps: Vec<_> = read_dir(src_path)?
+    let apps: Vec<_> = read_dir(src_path)
+        .unwrap()
         .into_iter()
         .map(|dir_entry| {
             let mut name_with_ext = dir_entry.unwrap().file_name().into_string().unwrap();
-            name_with_ext.drain(name_with_ext.find(".").unwrap()..name_with_ext.len());
+            name_with_ext.drain(name_with_ext.find('.').unwrap()..name_with_ext.len());
             name_with_ext
         })
         .collect();
     for app in apps {
-        let mut host_file = File::open(format!("{}{}", target_path, app))?;
+        let mut host_file = File::open(format!("{}{}", target_path, app)).unwrap();
         let mut all_data: Vec<u8> = Vec::new();
-        host_file.read_to_end(&mut all_data)?;
+        host_file.read_to_end(&mut all_data).unwrap();
         let inode = root_inode.create(app.as_str()).unwrap();
-        inode.write_at(0, &all_data);
+        inode.write_at(0, all_data.as_slice());
     }
     for app in root_inode.ls() {
         println!("{}", app);
