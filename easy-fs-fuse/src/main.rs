@@ -28,6 +28,7 @@ impl BlockDevice for BlockFile {
 
 fn main() {
     easy_fs_pack().expect("Failed to pack filesystem");
+    println!("Successfully packed filesystem");
 }
 
 fn easy_fs_pack() -> std::io::Result<()> {
@@ -59,7 +60,7 @@ fn easy_fs_pack() -> std::io::Result<()> {
             .read(true)
             .write(true)
             .create(true)
-            .open(format!("{}{}", target_path, "easy_fs.img"))?;
+            .open(format!("{}{}", target_path, "fs.img"))?;
         // 16MiB, at most 4095 files
         f.set_len(16 * 2048 * 512)?;
         f

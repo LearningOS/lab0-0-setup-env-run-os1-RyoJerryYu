@@ -17,11 +17,6 @@ ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
 
-# BOARD
-BOARD := qemu
-SBI ?= rustsbi
-BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
-
 # KERNEL ENTRY
 KERNEL_ENTRY_PA := 0x80200000
 
@@ -32,7 +27,7 @@ OBJCOPY := rust-objcopy --binary-architecture=riscv64
 # Disassembly
 DISASM ?= -x
 
-build: env $(KERNEL_BIN)
+build: env $(KERNEL_BIN) fs-img
 
 env:
 	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
@@ -43,8 +38,14 @@ env:
 $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
+fs-img: $(APPS)
+	@cd ../user && make build TEST=$(TEST)
+	@rm -f $(FS_IMG)
+	@cd ../easy-fs-fuse && cargo run --release -- -s ../user/src/bin/ -t ../user/target/riscv64gc-unknown-none-elf/release/
+
+$(APPS):
+
 kernel:
-	@cd ../user && make build
 	@echo Platform: $(BOARD)
 	# @cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG)
