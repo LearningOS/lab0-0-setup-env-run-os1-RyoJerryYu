@@ -1,13 +1,8 @@
 use crate::{
     fs::{open_file, OpenFlags},
     mm::{translated_byte_buffer, translated_str, UserBuffer},
-    print,
-    sbi::console_getchar,
-    task::{current_task, current_user_token, suspend_current_and_run_next},
+    task::{current_task, current_user_token},
 };
-
-const FD_STDIN: usize = 0;
-const FD_STDOUT: usize = 1;
 
 pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     let token = current_user_token();

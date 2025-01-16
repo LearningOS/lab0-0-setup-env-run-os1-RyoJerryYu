@@ -1,9 +1,4 @@
-use crate::{
-    mm::translated_byte_buffer,
-    print,
-    sbi::console_getchar,
-    task::{current_user_token, suspend_current_and_run_next},
-};
+use crate::{print, sbi::console_getchar, task::suspend_current_and_run_next};
 
 use super::File;
 

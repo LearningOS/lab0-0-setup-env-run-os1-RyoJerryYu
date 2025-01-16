@@ -8,7 +8,7 @@ use alloc::{
 
 use crate::{
     config::TRAP_CONTEXT,
-    fs::File,
+    fs::{File, Stdin, Stdout},
     mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE},
     sync::UPSafeCell,
     trap::{context::TrapContext, trap_handler},
@@ -82,7 +82,11 @@ impl TaskControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
-                    fd_table: vec![None; 16], // TODO: init this
+                    fd_table: vec![
+                        Some(Arc::new(Stdin)),  // 0: stdin
+                        Some(Arc::new(Stdout)), // 1: stdout
+                        Some(Arc::new(Stdout)), // 2: stderr
+                    ],
                 })
             },
         };
@@ -137,6 +141,11 @@ impl TaskControlBlock {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        // copy fd table
+        let mut new_fd_table = Vec::new();
+        for fd in parent_inner.fd_table.iter() {
+            new_fd_table.push(fd.clone());
+        }
         // new tcb on the heap
         let task_control_block = Arc::new(Self {
             pid: pid_handle,
@@ -151,7 +160,7 @@ impl TaskControlBlock {
                     parent: Some(Arc::downgrade(self)), // create a weak reference to parent
                     children: Vec::new(),
                     exit_code: 0,
-                    fd_table: vec![None; 16], // TODO: init this
+                    fd_table: new_fd_table,
                 })
             },
         });
@@ -180,6 +189,7 @@ impl TaskControlBlockInner {
         self.memory_set.token()
     }
 
+    #[allow(unused)]
     pub fn get_status(&self) -> TaskStatus {
         self.task_status
     }

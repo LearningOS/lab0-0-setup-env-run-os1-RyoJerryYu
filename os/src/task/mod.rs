@@ -1,17 +1,10 @@
-use alloc::{sync::Arc, vec::Vec};
+use alloc::sync::Arc;
 use context::TaskContext;
 use lazy_static::lazy_static;
 use processor::{schedule, take_current_task};
 use task::TaskControlBlock;
 
-use crate::{
-    fs::{open_file, OpenFlags},
-    loaders::{get_app_data, get_num_app},
-    println,
-    sbi::shutdown,
-    sync::UPSafeCell,
-    trap::context::TrapContext,
-};
+use crate::fs::{open_file, OpenFlags};
 
 mod context;
 mod manager;

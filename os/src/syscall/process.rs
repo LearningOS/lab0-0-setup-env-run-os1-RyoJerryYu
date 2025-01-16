@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 
 use crate::{
-    fs::{open_file, File, OpenFlags},
+    fs::{open_file, OpenFlags},
     mm::{translated_refmut, translated_str},
     println,
     task::{
