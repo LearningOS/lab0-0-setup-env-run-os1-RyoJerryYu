@@ -9,8 +9,10 @@ use user_lib::{exec, fork, wait, yield_};
 #[no_mangle]
 fn main() -> i32 {
     if fork() == 0 {
-        exec("user_shell\0");
+        // subprocess, execute the user shell
+        exec("user_shell\0", &[core::ptr::null()]);
     } else {
+        // mainprocess, release zombie processes
         loop {
             let mut exit_code: i32 = 0;
             let pid = wait(&mut exit_code);
