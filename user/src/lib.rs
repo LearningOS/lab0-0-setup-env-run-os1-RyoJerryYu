@@ -45,12 +45,20 @@ bitflags! {
     }
 }
 
+pub fn dup(fd: usize) -> isize {
+    sys_dup(fd)
+}
+
 pub fn open(path: &str, flags: OpenFlags) -> isize {
     sys_open(path, flags.bits as usize)
 }
 
 pub fn close(fd: usize) -> isize {
     sys_close(fd)
+}
+
+pub fn pipe(pipe_fd: &mut [usize]) -> isize {
+    sys_pipe(pipe_fd)
 }
 
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
