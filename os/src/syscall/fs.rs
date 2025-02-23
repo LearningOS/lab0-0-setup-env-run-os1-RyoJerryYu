@@ -1,6 +1,6 @@
 use crate::{
-    fs::{open_file, OpenFlags},
-    mm::{translated_byte_buffer, translated_str, UserBuffer},
+    fs::{make_pipe, open_file, OpenFlags},
+    mm::{translated_byte_buffer, translated_refmut, translated_str, UserBuffer},
     task::{current_task, current_user_token},
 };
 
@@ -68,5 +68,21 @@ pub fn sys_close(fd: usize) -> isize {
         return -1;
     }
     inner.fd_table[fd].take();
+    0
+}
+
+pub fn sys_pipe(pipe: *mut usize) -> isize {
+    let task = current_task().unwrap();
+    let token = current_user_token();
+    let mut inner = task.inner_exclusive_access();
+
+    let (pipe_read, pipe_write) = make_pipe();
+    let read_fd = inner.alloc_fd();
+    inner.fd_table[read_fd] = Some(pipe_read);
+    let write_fd = inner.alloc_fd();
+    inner.fd_table[write_fd] = Some(pipe_write);
+
+    *translated_refmut(token, pipe) = read_fd;
+    *translated_refmut(token, unsafe { pipe.add(1) }) = write_fd;
     0
 }
