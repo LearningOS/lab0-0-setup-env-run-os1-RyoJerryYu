@@ -10,7 +10,8 @@ pub use memory_set::MemorySet;
 pub use memory_set::KERNEL_SPACE;
 pub use memory_set::{kernel_token, MapPermission};
 pub use page_table::{
-    translated_byte_buffer, translated_refmut, translated_str, PageTable, UserBuffer,
+    translated_byte_buffer, translated_ref, translated_refmut, translated_str, PageTable,
+    UserBuffer,
 };
 
 use crate::println;
