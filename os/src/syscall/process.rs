@@ -48,6 +48,9 @@ pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
     let token = current_user_token();
     let path = translated_str(token, path);
 
+    println!("os sys_exec: path = {}", path);
+    println!("os sys_exec: args = {:x}", args as usize);
+
     // translate args from user space
     let mut args_vec: Vec<String> = Vec::new();
     loop {
@@ -64,8 +67,10 @@ pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
     if let Some(app_inode) = open_file(path.as_str(), OpenFlags::RDONLY) {
         let all_data = app_inode.read_all();
         let task = current_task().unwrap();
+        let argc = args_vec.len();
         task.exec(all_data.as_slice(), args_vec);
-        0
+        // return argc because cx.x[10] will be covered with it later
+        argc as isize
     } else {
         -1
     }
