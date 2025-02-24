@@ -6,15 +6,19 @@ use task::TaskControlBlock;
 
 use crate::fs::{open_file, OpenFlags};
 
+mod action;
 mod context;
 mod manager;
 mod pid;
 mod processor;
+mod signal;
 mod switch;
 mod task;
 
+pub use action::{SignalAction, SignalActions};
 pub use manager::add_task;
 pub use processor::{current_task, current_trap_cx, current_user_token, run_tasks};
+pub use signal::{SignalFlags, MAX_SIG};
 
 pub fn suspend_current_and_run_next() {
     let current_task = take_current_task().unwrap();
