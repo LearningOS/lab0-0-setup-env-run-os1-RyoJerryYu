@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+use crate::SignalAction;
+
 const SYSCALL_DUP: usize = 24;
 const SYSCALL_OPEN: usize = 56;
 const SYSCALL_CLOSE: usize = 57;
@@ -8,6 +10,10 @@ const SYSCALL_READ: usize = 63;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_YIELD: usize = 124;
+const SYSCALL_KILL: usize = 129;
+const SYSCALL_SIGACTION: usize = 134;
+const SYSCALL_SIGPROCMASK: usize = 135;
+const SYSCALL_SIGRETURN: usize = 139;
 const SYSCALL_GET_TIME: usize = 169;
 const SYSCALL_GETPID: usize = 172;
 const SYSCALL_FORK: usize = 220;
@@ -63,6 +69,12 @@ pub fn sys_yield() {
     syscall(SYSCALL_YIELD, [0, 0, 0]);
 }
 
+/// return -1 when arguments are invalid
+/// elsewise return 0
+pub fn sys_kill(pid: usize, signal: i32) -> isize {
+    syscall(SYSCALL_KILL, [pid, signal as usize, 0])
+}
+
 pub fn sys_get_time() -> isize {
     syscall(SYSCALL_GET_TIME, [0, 0, 0])
 }
@@ -92,4 +104,28 @@ pub fn sys_exec(path: &str, args: &[*const u8]) -> isize {
 /// return the pid of the child process that exited
 pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
     syscall(SYSCALL_WAITPID, [pid as usize, exit_code as usize, 0])
+}
+
+/// 功能：为当前进程设置某种信号的处理函数，同时保存设置之前的处理函数。
+/// 参数：signum 表示信号的编号，action 表示要设置成的处理函数的指针
+/// old_action 表示用于保存设置之前的处理函数的指针（SignalAction 结构稍后介绍）。
+/// 返回值：如果传入参数错误（比如传入的 action 或 old_action 为空指针或者）
+/// 信号类型不存在返回 -1 ，否则返回 0 。
+pub fn sys_sigaction(
+    signum: i32,
+    action: *const SignalAction,
+    old_action: *mut SignalAction,
+) -> isize {
+    syscall(
+        SYSCALL_SIGACTION,
+        [signum as usize, action as usize, old_action as usize],
+    )
+}
+
+pub fn sys_sigprocmask(mask: u32) -> isize {
+    syscall(SYSCALL_SIGPROCMASK, [mask as usize, 0, 0])
+}
+
+pub fn sys_sigreturn() -> isize {
+    syscall(SYSCALL_SIGRETURN, [0, 0, 0])
 }
