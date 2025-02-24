@@ -122,6 +122,8 @@ pub fn sys_sigaction(
     )
 }
 
+/// return -1 if the mask is invalid
+/// elsewise return the old mask
 pub fn sys_sigprocmask(mask: u32) -> isize {
     syscall(SYSCALL_SIGPROCMASK, [mask as usize, 0, 0])
 }
