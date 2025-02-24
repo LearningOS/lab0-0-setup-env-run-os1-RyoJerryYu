@@ -232,8 +232,8 @@ pub fn sigaction(
     )
 }
 
-pub fn sigprocmask(mask: i32) -> isize {
-    sys_sigprocmask(mask as u32)
+pub fn sigprocmask(mask: u32) -> isize {
+    sys_sigprocmask(mask)
 }
 
 pub fn sigreturn() -> isize {
