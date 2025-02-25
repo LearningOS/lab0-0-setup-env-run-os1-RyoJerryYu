@@ -11,8 +11,8 @@ use crate::{
     println,
     syscall::syscall,
     task::{
-        current_trap_cx, current_user_token, exit_current_and_run_next,
-        suspend_current_and_run_next,
+        current_add_signal, current_trap_cx, current_user_token, exit_current_and_run_next,
+        suspend_current_and_run_next, SignalFlags,
     },
     timer::set_next_trigger,
 };
@@ -64,14 +64,18 @@ pub fn trap_handler() -> ! {
         }
         Trap::Exception(Exception::StoreFault)
         | Trap::Exception(Exception::StorePageFault)
+        | Trap::Exception(Exception::InstructionFault)
+        | Trap::Exception(Exception::InstructionPageFault)
         | Trap::Exception(Exception::LoadFault)
         | Trap::Exception(Exception::LoadPageFault) => {
-            println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, current_trap_cx().sepc);
-            exit_current_and_run_next(-2);
+            // println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.", stval, current_trap_cx().sepc);
+            // exit_current_and_run_next(-2);
+            current_add_signal(SignalFlags::SIGSEGV);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
-            println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            exit_current_and_run_next(-3);
+            // println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            // exit_current_and_run_next(-3);
+            current_add_signal(SignalFlags::SIGILL);
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();

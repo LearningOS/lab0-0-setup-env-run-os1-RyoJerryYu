@@ -5,7 +5,7 @@ use crate::{
     mm::{translated_ref, translated_refmut, translated_str},
     println,
     task::{
-        add_task, current_task, current_user_token, exit_current_and_run_next,
+        add_task, current_task, current_user_token, exit_current_and_run_next, pid2task,
         suspend_current_and_run_next, SignalAction, SignalFlags, MAX_SIG,
     },
     timer::get_time_ms,
@@ -111,7 +111,20 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
 }
 
 pub fn sys_kill(pid: usize, signum: i32) -> isize {
-    todo!()
+    if let Some(task) = pid2task(pid) {
+        if let Some(flag) = SignalFlags::from_bits(1 << signum) {
+            let mut task_inner = task.inner_exclusive_access();
+            if task_inner.signals.contains(flag) {
+                return -1;
+            }
+            task_inner.signals.insert(flag);
+            0
+        } else {
+            -1
+        }
+    } else {
+        -1
+    }
 }
 
 pub fn sys_sigprocmask(mask: u32) -> isize {

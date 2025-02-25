@@ -88,3 +88,9 @@ lazy_static! {
 pub fn add_initproc() {
     add_task(INITPROC.clone());
 }
+
+pub fn current_add_signal(signal: SignalFlags) {
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    inner.signals |= signal;
+}
