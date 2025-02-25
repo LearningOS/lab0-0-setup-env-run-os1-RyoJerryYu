@@ -142,7 +142,18 @@ pub fn sys_sigprocmask(mask: u32) -> isize {
 }
 
 pub fn sys_sigreturn() -> isize {
-    todo!()
+    if let Some(task) = current_task() {
+        let mut inner = task.inner_exclusive_access();
+        inner.handling_sig = -1;
+        let trap_ctx = inner.get_trap_cx();
+        *trap_ctx = inner.trap_ctx_backup.unwrap();
+        // Here we return the value of a0 in the trap_ctx,
+        // otherwise it will be overwritten after we trap
+        // back to the original execution of the application.
+        trap_ctx.x[10] as isize
+    } else {
+        -1
+    }
 }
 
 fn check_sigaction_error(signal: SignalFlags, action: usize, old_action: usize) -> bool {

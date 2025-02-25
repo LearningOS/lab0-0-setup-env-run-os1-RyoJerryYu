@@ -1,4 +1,4 @@
-use core::{cell::RefMut, iter::empty};
+use core::cell::RefMut;
 
 use alloc::{
     string::String,
