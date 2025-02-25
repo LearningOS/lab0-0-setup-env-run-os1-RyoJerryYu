@@ -89,8 +89,114 @@ pub fn add_initproc() {
     add_task(INITPROC.clone());
 }
 
+pub fn check_signals_error_of_current() -> Option<(i32, &'static str)> {
+    let task = current_task().unwrap();
+    let task_inner = task.inner_exclusive_access();
+    task_inner.signals.check_error()
+}
+
 pub fn current_add_signal(signal: SignalFlags) {
     let task = current_task().unwrap();
     let mut inner = task.inner_exclusive_access();
     inner.signals |= signal;
+}
+
+fn call_kernel_signal_handler(signal: SignalFlags) {
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    match signal {
+        SignalFlags::SIGSTOP => {
+            inner.frozen = true;
+            inner.signals.toggle(SignalFlags::SIGSTOP);
+        }
+        SignalFlags::SIGCONT => {
+            if inner.signals.contains(SignalFlags::SIGCONT) {
+                inner.signals.toggle(SignalFlags::SIGCONT);
+                inner.frozen = false;
+            }
+        }
+        _ => {
+            inner.killed = true;
+        }
+    }
+}
+
+fn call_user_signal_handler(sig: usize, signal: SignalFlags) {
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+
+    let handler = inner.signal_actions.table[sig].handler;
+    if handler == 0 {
+        // default action
+        println!("[K] task/call_user_signal_handler: default action: ignore it or kill process");
+        return;
+    }
+
+    // user handler
+
+    inner.handling_sig = sig as isize;
+    inner.signals.toggle(signal);
+
+    // backup trap context
+    let trap_ctx = inner.get_trap_cx();
+    inner.trap_ctx_backup = Some(*trap_ctx);
+
+    trap_ctx.sepc = handler; // set pc
+    trap_ctx.x[10] = sig; // put a0
+}
+
+fn check_pending_signals() {
+    for sig in 0..(MAX_SIG + 1) {
+        let task = current_task().unwrap();
+        let task_inner = task.inner_exclusive_access();
+        let signal = SignalFlags::from_bits(1 << sig).unwrap();
+        if task_inner.signals.contains(signal) && (!task_inner.signal_mask.contains(signal)) {
+            let mut masked = true;
+            let handling_sig = task_inner.handling_sig;
+            if handling_sig == -1 {
+                // not handling
+                masked = false;
+            } else {
+                let handling_sig = handling_sig as usize;
+                if !task_inner.signal_actions.table[handling_sig]
+                    .mask
+                    .contains(signal)
+                {
+                    // handling but not masked
+                    masked = false;
+                }
+            }
+
+            if !masked {
+                drop(task_inner);
+                drop(task);
+                if signal == SignalFlags::SIGKILL
+                    || signal == SignalFlags::SIGSTOP
+                    || signal == SignalFlags::SIGCONT
+                    || signal == SignalFlags::SIGDEF
+                {
+                    // signal is a kernel signal
+                    call_kernel_signal_handler(signal);
+                } else {
+                    // signal is a user signal
+                    call_user_signal_handler(sig, signal);
+                }
+            }
+        }
+    }
+}
+
+pub fn handle_signals() {
+    loop {
+        check_pending_signals();
+        let (frozen, killed) = {
+            let task = current_task().unwrap();
+            let inner = task.inner_exclusive_access();
+            (inner.frozen, inner.killed)
+        };
+        if !frozen || killed {
+            break;
+        }
+        suspend_current_and_run_next();
+    }
 }

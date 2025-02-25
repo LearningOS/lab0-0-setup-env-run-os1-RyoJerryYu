@@ -11,8 +11,8 @@ use crate::{
     println,
     syscall::syscall,
     task::{
-        current_add_signal, current_trap_cx, current_user_token, exit_current_and_run_next,
-        suspend_current_and_run_next, SignalFlags,
+        check_signals_error_of_current, current_add_signal, current_trap_cx, current_user_token,
+        exit_current_and_run_next, handle_signals, suspend_current_and_run_next, SignalFlags,
     },
     timer::set_next_trigger,
 };
@@ -89,6 +89,18 @@ pub fn trap_handler() -> ! {
             );
         }
     }
+    handle_signals();
+
+    if let Some((errno, msg)) = check_signals_error_of_current() {
+        println!(
+            "[kernel] Task {} killed by signal {}, errno = {}",
+            current_trap_cx().x[17],
+            msg,
+            errno
+        );
+        exit_current_and_run_next(errno);
+    }
+
     trap_return();
 }
 
