@@ -1,10 +1,15 @@
 use alloc::sync::Arc;
 use context::TaskContext;
 use lazy_static::lazy_static;
+use manager::remove_from_pid2task;
 use processor::{schedule, take_current_task};
 use task::TaskControlBlock;
 
-use crate::fs::{open_file, OpenFlags};
+use crate::{
+    fs::{open_file, OpenFlags},
+    println,
+    sbi::shutdown,
+};
 
 mod action;
 mod context;
@@ -17,6 +22,7 @@ mod task;
 
 pub use action::{SignalAction, SignalActions};
 pub use manager::add_task;
+pub use manager::pid2task;
 pub use processor::{current_task, current_trap_cx, current_user_token, run_tasks};
 pub use signal::{SignalFlags, MAX_SIG};
 
@@ -32,8 +38,22 @@ pub fn suspend_current_and_run_next() {
     schedule(current_task_cx_ptr);
 }
 
+pub const IDLE_PID: usize = 0;
+
 pub fn exit_current_and_run_next(exit_code: i32) {
     let task = take_current_task().unwrap();
+
+    let pid = task.getpid();
+    if pid == IDLE_PID {
+        println!("The idle task exit with exit_code {}", exit_code);
+        if exit_code != 0 {
+            shutdown(true);
+        } else {
+            shutdown(false);
+        }
+    }
+
+    remove_from_pid2task(task.getpid());
     let mut inner = task.inner_exclusive_access();
     inner.task_status = task::TaskStatus::Zombie;
     inner.exit_code = exit_code;
