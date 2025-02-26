@@ -151,6 +151,8 @@ fn check_pending_signals() {
         let task_inner = task.inner_exclusive_access();
         let signal = SignalFlags::from_bits(1 << sig).unwrap();
         if task_inner.signals.contains(signal) && (!task_inner.signal_mask.contains(signal)) {
+            // have signal and not masked
+
             let mut masked = true;
             let handling_sig = task_inner.handling_sig;
             if handling_sig == -1 {
@@ -162,12 +164,13 @@ fn check_pending_signals() {
                     .mask
                     .contains(signal)
                 {
-                    // handling but not masked
+                    // handling but not masked by handler
                     masked = false;
                 }
             }
 
             if !masked {
+                // should handle this signal
                 drop(task_inner);
                 drop(task);
                 if signal == SignalFlags::SIGKILL
@@ -177,9 +180,12 @@ fn check_pending_signals() {
                 {
                     // signal is a kernel signal
                     call_kernel_signal_handler(signal);
+                    // will frozen or killed, so no need to return
+                    // if frozen, will still handle signals after continue
                 } else {
                     // signal is a user signal
                     call_user_signal_handler(sig, signal);
+                    return;
                 }
             }
         }
@@ -187,6 +193,7 @@ fn check_pending_signals() {
 }
 
 pub fn handle_signals() {
+    // this loop is for SIGSTOP and SIGCONT
     loop {
         check_pending_signals();
         let (frozen, killed) = {
